@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div>
+    <button id="test1">test1</button>
+</div>
+<div>
+    <button id="test2" style="margin-top: 100px;">test2</button>
+</div>
+
+<div id="responseContent"></div>
+<script type="text/javascript">
+
+    document.addEventListener(
+        'onBridgeLoaded', function () {
+            console.log(Bridge)
+            Bridge.registerHandler("testNative", function (data, callback) {
+                callback(data);
+            })
+        })
+
+    document.getElementById("test1").onclick = function () {
+        Bridge.callAsyncHandler("test1", {a: "111111", b: "ccc"}, function (responseData) {
+            console.log(responseData);
+        })
+
+        Bridge.callAsyncHandler("test1", {a: "2222222", b: "www"}, function (responseData) {
+            console.log(responseData);
+        })
+    }
+    document.getElementById("test2").onclick = function () {
+        Bridge.callSyncHandler("test1", {a: "aaa", b: "ccc"}, function (responseData) {
+            console.log(responseData);
+        })
+
+        Bridge.callSyncHandler("test1", {a: "vvv", b: "www"}, function (responseData) {
+            console.log(responseData);
+        })
+    }
+</script>
+</body>
+</html>
