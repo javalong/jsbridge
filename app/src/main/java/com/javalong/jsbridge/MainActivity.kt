@@ -20,11 +20,14 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        //这里开启debug模式 可以在chrome中进行调试
         WebView.setWebContentsDebuggingEnabled(true)
         webView.settings.javaScriptEnabled = true
         var helper = BridgeHelper()
         var handler = Handler()
+        //这里的webViewClient可以实现自己的做一些特殊的处理
         helper.init(webView, null)
+        //注册方法提供给js端调用
         helper.registerHandler("testJs", object : BridgeHandler {
             override fun call(data: JSONObject, callback: ResponseCallback) {
                 Toast.makeText(this@MainActivity, data.toJSONString(), Toast.LENGTH_LONG).show()
@@ -40,6 +43,7 @@ class MainActivity : AppCompatActivity() {
         var mockData1 = JSONObject()
         mockData1.put("data1", "111")
         mockData1.put("data2", "222")
+        //异步调用js方法
         helper.callAsyncHandler("testNative", mockData1, object : ResponseCallback {
             override fun call(data: JSONObject?) {
                 Log.e(TAG, "native异步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
@@ -48,24 +52,24 @@ class MainActivity : AppCompatActivity() {
         var mockData2 = JSONObject()
         mockData2.put("data1", "333")
         mockData2.put("data2", "4444")
+        //异步调用js方法
         helper.callAsyncHandler("testNative", mockData2, object : ResponseCallback {
             override fun call(data: JSONObject?) {
                 Log.e(TAG, "native异步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
             }
         })
+        //同步调用js方法
         helper.callSyncHandler("testNative", mockData1, object : ResponseCallback {
             override fun call(data: JSONObject?) {
                 Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
             }
         })
-
+        //同步调用js方法
         helper.callSyncHandler("testNative", mockData2, object : ResponseCallback {
             override fun call(data: JSONObject?) {
                 Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
             }
         })
-
-
         btTestNative.setOnClickListener({
             var a = JSONObject()
             a.put("a", "111")
