@@ -87,23 +87,30 @@
 
         executeBridgeFunc = function (msg) {
             msg = JSON.parse(msg);
-
+            //判断bridgeFuncs是否注册了对应的方法
             if (bridgeFuncs[msg.handlerName] != null) {
+                //如果有就直接执行，并且传入一个回调方法
                 bridgeFuncs[msg.handlerName](msg.data, function (responseParam) {
+                    //当调用了callback方法后会进入这里
                     if (responseParam == null) {
                         responseParam = {};
                     }
+                    //这里需要传入参数是否是同步的消息，为了native端能够继续执行同步消息
                     responseParam.sync = msg.sync;
+                    //封装一个消息对象，传入native发送过来的消息的对应的回调方法的key
                     var callbackMsg = {
                         data: responseParam,
                         id: msg.callbackKey
                     };
+
+                    //由于location.href频繁调用会造成消息丢失，只能接收到最后的一个location.href，所以这里需要把消息存入队列，一次性发送
                     callbackMessages.push(callbackMsg);
                     if (!callbackMessageWait) {
                         callbackMessageWait = true;
                         setTimeout(function () {
                             //执行完毕bridge后，回调native方法
                             location.href = CALL_BACK_URL + "?messages=" + encodeURI(JSON.stringify(callbackMessages));
+                            //发送完成后需要清空数据，防止重复发送数据
                             callbackMessages = [];
                             callbackMessageWait = false;
                         }, WAIT_TIME_OUT);
@@ -140,10 +147,7 @@
         var evt = document.createEvent("Events");
         evt.initEvent("onBridgeLoaded");
         document.dispatchEvent(evt);
-
-        setTimeout(function () {
-            //同时也发送信息告诉native端，bridge加载完成
-            location.href = JSBRIDGE_LOADED;
-        }, WAIT_TIME_OUT)
+        //同时也发送信息告诉native端，bridge加载完成
+        location.href = JSBRIDGE_LOADED;
     }
 })();

@@ -19,7 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue
 class BridgeHelper {
     companion object {
         const val SCHEME = "jsbridge://"
-        const val JSBRIDGE_LOADED = SCHEME+ "jsbridge_loaded"
+        const val JSBRIDGE_LOADED = SCHEME + "jsbridge_loaded"
         const val CALL_HANDLE_URL = SCHEME + "call_handle_url"
         const val CALL_BACK_URL = SCHEME + "call_back_url"
         const val PREFEX_CALL_FUNCS_KEY = "jjnative_"
@@ -196,6 +196,7 @@ class BridgeHelper {
         bridgeFuncs.put(handlerName, handler)
     }
 
+    //如果回调方法不为null，就创建一个key存入map
     private fun pushCallFunc(callFunc: ResponseCallback): String {
         var funcKey = NO_CALL_FUNC_KEY
         if (callFunc != null) {
@@ -223,17 +224,20 @@ class BridgeHelper {
 
     fun callAsyncHandler(handlerName: String, param: JSONObject, callback: ResponseCallback) {
         var funcKey = pushCallFunc(callback)
+        //回调方法对应的key需要放入Message对象传给js，因为js那么需要调用callback方法时需要再传回来
         var msg = Message(handlerName, param, funcKey, true)
+        //这里主要是为了区分连续调用多次callSyncHandler时，时间上是相同的，这样会把前面的回调方法给覆盖了
         this.unique++
+        //如果bridge还未加载完成，就先存入队列，如果完成了，就直接发送
         if (jsbridgeLoaeded) {
             //调用js方法
             doSendMessageToJS(msg)
         } else {
-            //如果jsbridge还未加载完毕，就先把要发送的消息放入队列，等待bridge加载完毕事件
             asyncMessages.offer(msg)
         }
     }
 
+    //直接调用js方法Bridge.executeBridgeFunc('%s')
     private fun doSendMessageToJS(message: Message) {
         webView.loadUrl("javascript:" + String.format(CALL_JSBRIDGEMETHOD_FUNCNAME, URLEncoder.encode(JSONObject.toJSONString(message), "utf-8")))
     }
