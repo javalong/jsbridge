@@ -6,6 +6,7 @@
         NO_CALL_FUNC_KEY = -1;
         PREFEX_CALL_FUNCS_KEY = "jj_";
         SCHEME = "jsbridge://";
+        JSBRIDGE_LOADED = SCHEME + "jsbridge_loaded";
         CALL_HANDLE_URL = SCHEME + "call_handle_url";
         CALL_BACK_URL = SCHEME + "call_back_url";
         WAIT_TIME_OUT = 100;
@@ -114,8 +115,9 @@
             var obj = JSON.parse(data);
             if (callFuncs[id] != null) {
                 callFuncs[id](obj);
+                //执行完毕回调后，就把方法移除
+                callFuncs[id] = null
             }
-            console.log(obj + "  " + obj.sync);
             //每次执行完回调后，如果是一个同步的消息从同步消息队列中去获取最新的消息发送
             if (obj.sync) {
                 var msg = syncMessages.shift();
@@ -138,5 +140,10 @@
         var evt = document.createEvent("Events");
         evt.initEvent("onBridgeLoaded");
         document.dispatchEvent(evt);
+
+        setTimeout(function () {
+            //同时也发送信息告诉native端，bridge加载完成
+            location.href = JSBRIDGE_LOADED;
+        }, WAIT_TIME_OUT)
     }
 })();

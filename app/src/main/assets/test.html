@@ -3,13 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
+    <style>
+        .btn {
+            width: 200px;
+            height: 100px;
+            margin-top: 100px;
+        }
+    </style>
 </head>
 <body>
 <div>
-    <button id="test1">test1</button>
+    <button id="testJs callAsyncHandler" class="btn">testJs callAsyncHandler</button>
 </div>
 <div>
-    <button id="test2" style="margin-top: 100px;">test2</button>
+    <button id="testJs callSyncHandler" class="btn">testJs callSyncHandler</button>
 </div>
 
 <div id="responseContent"></div>
@@ -17,28 +24,28 @@
 
     document.addEventListener(
         'onBridgeLoaded', function () {
-            console.log(Bridge)
             Bridge.registerHandler("testNative", function (data, callback) {
+                console.log("native成功调用js中注册的方法testNative")
                 callback(data);
             })
         })
 
-    document.getElementById("test1").onclick = function () {
-        Bridge.callAsyncHandler("test1", {a: "111111", b: "ccc"}, function (responseData) {
-            console.log(responseData);
+    document.getElementById("testJs callAsyncHandler").onclick = function () {
+        Bridge.callAsyncHandler("testJs", {a: "111111", b: "ccc"}, function (responseData) {
+            console.log("js异步调用native中的注册方法testJs,native执行注册方法时回调callback方法，并传入参数:" + responseData);
         })
 
-        Bridge.callAsyncHandler("test1", {a: "2222222", b: "www"}, function (responseData) {
-            console.log(responseData);
+        Bridge.callAsyncHandler("testJs", {a: "2222222", b: "www"}, function (responseData) {
+            console.log("js异步调用native中的注册方法testJs,native执行注册方法时回调callback方法，并传入参数:" + responseData);
         })
     }
-    document.getElementById("test2").onclick = function () {
-        Bridge.callSyncHandler("test1", {a: "aaa", b: "ccc"}, function (responseData) {
-            console.log(responseData);
+    document.getElementById("testJs callSyncHandler").onclick = function () {
+        Bridge.callSyncHandler("testJs", {a: "aaa", b: "ccc"}, function (responseData) {
+            console.log("js同步调用native中的注册方法testJs,native执行注册方法时回调callback方法，并传入参数:" + responseData);
         })
 
-        Bridge.callSyncHandler("test1", {a: "vvv", b: "www"}, function (responseData) {
-            console.log(responseData);
+        Bridge.callSyncHandler("testJs", {a: "vvv", b: "www"}, function (responseData) {
+            console.log("js同步调用native中的注册方法testJs,native执行注册方法时回调callback方法，并传入参数:" + responseData);
         })
     }
 </script>

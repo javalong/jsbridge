@@ -19,6 +19,7 @@ import java.util.concurrent.LinkedBlockingQueue
 class BridgeHelper {
     companion object {
         const val SCHEME = "jsbridge://"
+        const val JSBRIDGE_LOADED = SCHEME+ "jsbridge_loaded"
         const val CALL_HANDLE_URL = SCHEME + "call_handle_url"
         const val CALL_BACK_URL = SCHEME + "call_back_url"
         const val PREFEX_CALL_FUNCS_KEY = "jjnative_"
@@ -30,9 +31,11 @@ class BridgeHelper {
     private var bridgeFuncs: HashMap<String, BridgeHandler> = HashMap()
     private var callFuncs: HashMap<String, ResponseCallback> = HashMap()
     private var syncMessages = LinkedBlockingQueue<Message>()
-    lateinit var webView: WebView
-    protected var syncMessageLoop = false
-    var unique = 0
+    private var asyncMessages = LinkedBlockingQueue<Message>()
+    private lateinit var webView: WebView
+    private var syncMessageLoop = false
+    private var unique = 0
+    private var jsbridgeLoaeded = false
 
 
     /**
@@ -70,9 +73,30 @@ class BridgeHelper {
                     var uri = Uri.parse(url)
                     var messages = uri.getQueryParameter("messages")
                     executeCallFunc(messages)
+                } else if (url.startsWith(JSBRIDGE_LOADED)) {
+                    //jsbridge加载成功
+                    jsbridgeLoaeded = true
+                    dealMessagesPreLoaded()
+                    //todo 触发回调
+                } else {
+                    return super.shouldOverrideUrlLoading(view, url)
                 }
                 return true
             }
+        }
+    }
+
+    //处理在jsbridge加载完成之前 所调用的方法
+    private fun dealMessagesPreLoaded() {
+        for (i in 0 until asyncMessages.size) {
+            var msg = asyncMessages.poll()
+            doSendMessageToJS(msg)
+        }
+
+        if (syncMessages.size > 0) {
+            syncMessageLoop = true
+            var msg = syncMessages.poll()
+            doSendMessageToJS(msg)
         }
     }
 
@@ -118,6 +142,8 @@ class BridgeHelper {
             var id = json.getString("id")
             if (callFuncs.containsKey(id)) {
                 callFuncs[id]?.call(json)
+                //执行完毕回调后，就把方法移除
+                callFuncs.remove(id)
             }
             if (data.getBoolean("sync")) {
                 sync = true
@@ -183,7 +209,7 @@ class BridgeHelper {
         var funcKey = pushCallFunc(callback)
         this.syncMessages.offer(Message(handlerName, param, funcKey, true))
         this.unique++
-        if (!syncMessageLoop) {
+        if (!syncMessageLoop && jsbridgeLoaeded) {
             syncMessageLoop = true
             //调用js方法
             var msg = syncMessages.poll()
@@ -191,7 +217,7 @@ class BridgeHelper {
                 syncMessageLoop = false
                 return
             }
-            webView.loadUrl("javascript:" + String.format(CALL_JSBRIDGEMETHOD_FUNCNAME, URLEncoder.encode(JSONObject.toJSONString(msg), "utf-8")))
+            doSendMessageToJS(msg)
         }
     }
 
@@ -199,7 +225,16 @@ class BridgeHelper {
         var funcKey = pushCallFunc(callback)
         var msg = Message(handlerName, param, funcKey, true)
         this.unique++
-        //调用js方法
-        webView.loadUrl("javascript:" + String.format(CALL_JSBRIDGEMETHOD_FUNCNAME, URLEncoder.encode(JSONObject.toJSONString(msg), "utf-8")))
+        if (jsbridgeLoaeded) {
+            //调用js方法
+            doSendMessageToJS(msg)
+        } else {
+            //如果jsbridge还未加载完毕，就先把要发送的消息放入队列，等待bridge加载完毕事件
+            asyncMessages.offer(msg)
+        }
+    }
+
+    private fun doSendMessageToJS(message: Message) {
+        webView.loadUrl("javascript:" + String.format(CALL_JSBRIDGEMETHOD_FUNCNAME, URLEncoder.encode(JSONObject.toJSONString(message), "utf-8")))
     }
 }

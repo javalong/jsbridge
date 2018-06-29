@@ -13,6 +13,9 @@ import com.javalong.lib.jsbridge.ResponseCallback
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        const val TAG = "MainActivity"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,23 +25,54 @@ class MainActivity : AppCompatActivity() {
         var helper = BridgeHelper()
         var handler = Handler()
         helper.init(webView, null)
-        helper.registerHandler("test1", object : BridgeHandler {
+        helper.registerHandler("testJs", object : BridgeHandler {
             override fun call(data: JSONObject, callback: ResponseCallback) {
                 Toast.makeText(this@MainActivity, data.toJSONString(), Toast.LENGTH_LONG).show()
-                var a = JSONObject()
-                a.put("a", "sss")
-                a.put("v", "sss")
-                handler.postDelayed(Runnable { callback.call(a) }, 2000)
+                var mockData = JSONObject()
+                mockData.put("data1", "aaa")
+                mockData.put("data2", "sss")
+                //这里延迟，可以使调用同步方法和调用异步方法的效果更加明显
+                handler.postDelayed(Runnable { callback.call(mockData) }, 2000)
+                Log.e(TAG, "js成功调用native中注册的方法testJs")
             }
         })
         webView.loadUrl("file:///android_asset/test.html")
+        var mockData1 = JSONObject()
+        mockData1.put("data1", "111")
+        mockData1.put("data2", "222")
+        helper.callAsyncHandler("testNative", mockData1, object : ResponseCallback {
+            override fun call(data: JSONObject?) {
+                Log.e(TAG, "native异步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
+            }
+        })
+        var mockData2 = JSONObject()
+        mockData2.put("data1", "333")
+        mockData2.put("data2", "4444")
+        helper.callAsyncHandler("testNative", mockData2, object : ResponseCallback {
+            override fun call(data: JSONObject?) {
+                Log.e(TAG, "native异步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
+            }
+        })
+        helper.callSyncHandler("testNative", mockData1, object : ResponseCallback {
+            override fun call(data: JSONObject?) {
+                Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
+            }
+        })
+
+        helper.callSyncHandler("testNative", mockData2, object : ResponseCallback {
+            override fun call(data: JSONObject?) {
+                Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
+            }
+        })
+
+
         btTestNative.setOnClickListener({
             var a = JSONObject()
             a.put("a", "111")
             a.put("v", "222")
             helper.callAsyncHandler("testNative", a, object : ResponseCallback {
                 override fun call(data: JSONObject?) {
-                    Log.e("aaaaa",a.toJSONString())
+                    Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
                 }
             })
             var b = JSONObject()
@@ -46,7 +80,7 @@ class MainActivity : AppCompatActivity() {
             b.put("v", "4444")
             helper.callAsyncHandler("testNative", b, object : ResponseCallback {
                 override fun call(data: JSONObject?) {
-                    Log.e("aaaaa",b.toJSONString())
+                    Log.e(TAG, "native同步调用js中注册的方法testNative,js在执行注册方法时回调callback方法，并传入参数:" + data?.toJSONString())
                 }
             })
         })
